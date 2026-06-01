@@ -12,9 +12,11 @@ test("isEmailValid retorna false para email inválido", () => {
 
 // Testa se um email com caracteres especiais passa na validação.
 test("isEmailValid retorna false para email inválido", () => {
+  // Contém um erro pois o email possui caracteres especiais e não deveria ser válido.
   expect(isEmailValid("joa&aaa@gmail.com")).toBe(false);
 });
 
+// Mensagens
 // Testa se as mensagens do email estão corretas.
 test("getEmailValidationMessage retorna mensagem correta", () => {
   expect(getEmailValidationMessage("")).toBe("Email é obrigatório");

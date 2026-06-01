@@ -37,6 +37,7 @@ test("isPasswordValid retorna false para senha inválida", () => {
 
 
 // --- Mensagens ---
+// Testes para as mensagens de retorno de senhas inválidas
 test("getPasswordValidationMessage retorna mensagem correta", () => {
   expect(getPasswordValidationMessage("")).toBe("Senha é obrigatória");
   expect(getPasswordValidationMessage("amaDeir4ado")).toBe("A senha deve conter: um caractere especial");

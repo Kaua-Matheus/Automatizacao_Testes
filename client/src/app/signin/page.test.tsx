@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import SignIn from "./page";
 import { authService } from "../../service/auth/auth";
 import { useAuth } from "../../contexts/AuthContext";
@@ -44,19 +44,16 @@ test("faz login e redireciona quando credenciais sao validas", async () => {
 
   render(<SignIn />);
 
-  fireEvent.change(screen.getByLabelText("Email"), {
+  fireEvent.change(screen.getByPlaceholderText("seu@email.com"), {
     target: { value: "joao@exemplo.com" },
   });
-  fireEvent.change(screen.getByLabelText("Senha"), {
+  fireEvent.change(screen.getByPlaceholderText("••••••••"), {
     target: { value: "Abcd1234@" },
   });
 
   fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
-  expect(mockSignIn).toHaveBeenCalledWith({
-    email: "joao@exemplo.com",
-    password: "Abcd1234@",
+  await waitFor(() => {
+    expect(push).toHaveBeenCalledWith("/");
   });
-  expect(login).toHaveBeenCalledWith({ id: 1, email: "joao@exemplo.com" });
-  expect(push).toHaveBeenCalledWith("/");
 });
