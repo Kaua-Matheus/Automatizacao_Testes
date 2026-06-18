@@ -1,64 +1,105 @@
 name: CI Pipeline
 
 on:
+  pull_request:
+    branches: [main]
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: demoapp
+          MYSQL_USER: demouser
+          MYSQL_PASSWORD: demopass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     name: Backend Unit Tests
-    
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: 21
           distribution: temurin
           cache: maven
-      - name: Setup MySQL
-        uses: shogo82148/actions-setup-mysql@v1
-        with:
-          mysql-version: '8.0'
-          user: 'root'
-          password: 'G0gg1n5NAVY'
-          database: 'mysql'
-      
+
       - name: Run Maven Tests
         working-directory: api
         run: mvn test
 
+      - name: Build API (skip tests)
+        working-directory: ./api
+        run: mvn clean package -DskipTests
+
+      - name: Start API server
+        working-directory: ./api
+        run: |
+          java -jar target/*.jar \
+            --spring.profiles.active=ci \
+            --spring.datasource.url=jdbc:mysql://localhost:3306/demoapp \
+            --spring.datasource.username=demouser \
+            --spring.datasource.password=demopass > /tmp/backend.log 2>&1 &
+          echo $! > /tmp/backend.pid
+
   frontend-tests:
     runs-on: ubuntu-latest
     name: Frontend Unit Tests
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
-      
+
       - name: Install Dependencies
         working-directory: client
         run: npm ci
-      
+
       - name: Run Jest Tests
         working-directory: client
         run: npm test
 
   e2e-tests:
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: demoapp
+          MYSQL_USER: demouser
+          MYSQL_PASSWORD: demopass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     name: E2E Tests (Playwright)
     needs: [backend-tests, frontend-tests]
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       # Setup Java para rodar o backend
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -70,50 +111,50 @@ jobs:
       - name: Setup MySQL
         uses: shogo82148/actions-setup-mysql@v1
         with:
-          mysql-version: '8.0'
-          user: 'root'
-          password: 'G0gg1n5NAVY'
-          database: 'mysql'
-      
+          mysql-version: "8.0"
+          user: "root"
+          password: "G0gg1n5NAVY"
+          database: "mysql"
+
       # Setup Node para rodar frontend + Playwright
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
-      
+
       - name: Install wait-on
         run: npm install -g wait-on
-      
+
       # Iniciar Backend
-      - name: Start Backend Server
-        working-directory: api
+      - name: Build API (skip tests)
+        working-directory: ./api
+        run: mvn clean package -DskipTests
+
+      - name: Start API server
+        working-directory: ./api
         run: |
-          mvn spring-boot:run -DskipTests -Dspring-boot.run.fork=true &
+          java -jar target/*.jar \
+            --spring.profiles.active=ci \
+            --spring.datasource.url=jdbc:mysql://localhost:3306/demoapp \
+            --spring.datasource.username=demouser \
+            --spring.datasource.password=demopass > /tmp/backend.log 2>&1 &
           echo $! > /tmp/backend.pid
-      
-      - name: Wait for Backend
-        run: |
-          wait-on http://localhost:8080 --timeout 60000 || {
-            echo "Backend failed to start"
-            cat /tmp/backend.pid | xargs kill -9 2>/dev/null || true
-            exit 1
-          }
-      
+
       # Iniciar Frontend
       - name: Install Frontend Dependencies
         working-directory: client
         run: npm ci
-      
+
       - name: Build Frontend
         working-directory: client
         run: npm run build
-      
+
       - name: Start Frontend Server
         working-directory: client
         run: |
           npm start &
           echo $! > /tmp/frontend.pid
-      
+
       - name: Wait for Frontend
         run: |
           wait-on http://localhost:3000 --timeout 60000 || {
@@ -121,18 +162,18 @@ jobs:
             cat /tmp/frontend.pid | xargs kill -9 2>/dev/null || true
             exit 1
           }
-      
+
       # Testes E2E
       - name: Install Playwright Dependencies
         working-directory: e2e_tests
         run: |
           npm ci
           npx playwright install
-      
+
       - name: Run Playwright Tests (Sequential)
         working-directory: e2e_tests
         run: npx playwright test --workers=1
-      
+
       # Cleanup: Parar serviços
       - name: Cleanup Servers
         if: always()
