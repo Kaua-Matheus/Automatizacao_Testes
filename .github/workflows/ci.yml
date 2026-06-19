@@ -154,13 +154,13 @@ jobs:
 
       # Testes E2E
       - name: Install Playwright Dependencies
-        working-directory: e2e_tests
+        working-directory: tests
         run: |
           npm ci
           npx playwright install
 
       - name: Run Playwright Tests (Sequential)
-        working-directory: e2e_tests
+        working-directory: tests
         run: npx playwright test --workers=1
 
       # Cleanup: Parar serviços
