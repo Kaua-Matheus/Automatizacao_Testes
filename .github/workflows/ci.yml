@@ -95,12 +95,10 @@ jobs:
           --health-retries=10
 
     name: E2E Tests (Playwright)
-    needs: [backend-tests, frontend-tests]
 
     steps:
       - uses: actions/checkout@v4
 
-      # Setup Java para rodar o backend
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -108,15 +106,6 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Setup MySQL
-        uses: shogo82148/actions-setup-mysql@v1
-        with:
-          mysql-version: "8.0"
-          user: "root"
-          password: "G0gg1n5NAVY"
-          database: "mysql"
-
-      # Setup Node para rodar frontend + Playwright
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
