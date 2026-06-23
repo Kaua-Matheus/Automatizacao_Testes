@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Post } from "@/service/types";
 
 interface PostCardProps {
@@ -16,6 +16,14 @@ export default function PostCard({
 }: PostCardProps) {
   const [liked, setLiked] = useState(post.liked);
   const [isLoading, setIsLoading] = useState(false);
+  const [likesCount, setLikesCount] = useState<number>(post.likes ?? 0);
+  const [dislikesCount, setDislikesCount] = useState<number>(post.dislikes ?? 0);
+
+  useEffect(() => {
+    setLiked(post.liked);
+    setLikesCount(post.likes ?? 0);
+    setDislikesCount(post.dislikes ?? 0);
+  }, [post.liked, post.likes, post.dislikes]);
 
   async function handleLike() {
     if (!isAuthenticated) {
@@ -25,12 +33,16 @@ export default function PostCard({
 
     setIsLoading(true);
     const previousLiked = liked;
+    const previousLikes = likesCount;
+
     setLiked(!liked);
+    setLikesCount((prev) => (liked ? Math.max(0, prev - 1) : prev + 1));
 
     try {
       await onLike(post.id);
     } catch {
       setLiked(previousLiked);
+      setLikesCount(previousLikes);
       alert("Erro ao curtir post. Tente novamente.");
     } finally {
       setIsLoading(false);
@@ -82,9 +94,20 @@ export default function PostCard({
           display: "flex",
           justifyContent: "flex-end",
           alignItems: "center",
+          gap: "20px",
           marginTop: "1rem",
         }}
       >
+
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <div style={{ color: "var(--foreground)", opacity: 0.9 }}>
+            <strong style={{ marginRight: 6 }}>Likes</strong> {likesCount}
+          </div>
+          <div style={{ color: "var(--foreground)", opacity: 0.7 }}>
+            <strong style={{ marginRight: 6 }}>Deslikes</strong> {dislikesCount}
+          </div>
+        </div>
+
         <button
           onClick={handleLike}
           disabled={isLoading}

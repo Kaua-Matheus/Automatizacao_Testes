@@ -60,6 +60,8 @@ public class PostService {
         post.put("id", postId);
         post.put("title", postNode.get("title").asText());
         post.put("body", postNode.get("body").asText());
+        post.put("likes", postNode.get("reactions").get("likes"));
+        post.put("dislikes", postNode.get("reactions").get("dislikes"));
         post.put("liked", likedPostIds.contains(postId));
         
         posts.add(post);
